@@ -14,13 +14,13 @@ import subprocess
 import shutil
 import datetime
 #import glob
-import timeit
+#import timeit
 from multiprocessing.dummy import Pool as ThreadPool
-
+import win32api
 
 NAME = '装箱单&spec&gad拷贝应用'
 PUBLISH_KEY=' R ' #R - release , B - Beta , A- Alpha
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 
 pdf2text_exe = r'D:\xpdf\pdftotext.exe'
 cfg = r'D:\xpdf\xpdfrc'
@@ -92,12 +92,6 @@ class Application():
         finish = time.time()
         cost = finish-start         
 
-        r_str ='由于文件名含无法处理字符导致无法处理的文件夹如下：\n'
-        for r in self.spec_str:
-            r_str=r_str+r+'\n'
-        results.append(r_str)
-        
-        print(r_str)
         r_str = ' 本次操作：'+str(total)+' 个文件夹, 用时'+str(cost)+' 秒 \n'
         results.append(r_str)
         print(r_str)
@@ -291,18 +285,19 @@ class Application():
             
             self.make_copy_log(source, aim, res, a_list,s_mtime)
             return 0
-
-                   
+                  
     def parse_pdf(self,dr, file):
         res = {}
         pdf = join(dr,file)
         
-        if pdf.find('•')!=-1:
-            if dr not in self.spec_str:
-                self.spec_str.append(dr)
-            return None
         try:
-            re = subprocess.check_output([pdf2text_exe,'-f','1','-l','1','-cfg',cfg,'-raw',pdf,'-'], shell=True,stderr=subprocess.STDOUT)            
+            fi = pdf.encode(encoding='gbk',errors='strict')
+            pdffile=pdf
+        except UnicodeEncodeError:
+            pdffile = win32api.GetShortPathName(pdf)
+        
+        try:
+            re = subprocess.check_output([pdf2text_exe,'-f','1','-l','1','-cfg',cfg,'-raw',pdffile,'-'], shell=True,stderr=subprocess.STDOUT)            
         except subprocess.CalledProcessError as e:
             print('Calledprocerr: %s'%e)
             return None
