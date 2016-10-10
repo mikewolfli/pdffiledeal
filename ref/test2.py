@@ -10,7 +10,22 @@ from pdfminer.layout import LAParams
 from io import StringIO
 import time
 from functools import wraps
+import ctypes
+import ctypes.wintypes
 import win32api
+
+def getpath(path):
+    ctypes.windll.kernel32.GetShortPathNameW.argtypes = [
+        ctypes.wintypes.LPCWSTR, # lpszLongPath
+        ctypes.wintypes.LPWSTR, # lpszShortPath
+        ctypes.wintypes.DWORD # cchBuffer
+        ]
+    ctypes.windll.kernel32.GetShortPathNameW.restype = ctypes.wintypes.DWORD
+
+    buf = ctypes.create_unicode_buffer(1024) # adjust buffer size, if necessary
+    ctypes.windll.kernel32.GetShortPathNameW(path, buf, len(buf))
+
+    return buf.value   
  
 def fn_timer(function):
     @wraps(function)
@@ -42,18 +57,11 @@ def convert_pdf(path, pages):
 
 #file  = r'm:\E30023919.054_致远奥林至尊_L9_7952_20160920-1040.pdf'
 #file = r'm:\\E30023919.054_致远•奥林至尊_L9_7952_20160920-1040.pdf'
-#file = r'M:\s\E30023919.054-057致远•奥林至尊7952\0700 SPEC&GAD\E30023919.054_致远•奥林至尊_L9_7952_20160920-1040.pdf'
-
-file = r'M:\s\E30012655.103-110金桥澎湖湾5705\0700 SPEC&GAD\5705-GAD-L57-L60.L73-L74.L83-L84.pdf'
-try:
-    fi = file.encode(encoding='gbk', errors='strict')
-    print('1')
-except UnicodeEncodeError:
-    fi = file.encode(encoding='utf-8', errors='strict')
-    print('2')
-
+#file = r'P:\Public\CE\6.Temp\数据组\E30023919.054_致远•奥林至尊_L9_7952_20160920-1040.pdf'
+file = r'\\10.126.35.6\Drawing\SJ\Nonstandard Project Files\E30023919.054-057致远•奥林至尊7952\0700 SPEC&GAD\E30023919.054_致远•奥林至尊_L9_7952_20160920-1040.pdf'
+fi = getpath(file)
+#fi = win32api.GetShortPathName(file)
 print(fi)
-print(file)
 #file = r'M:\h25yosan2.pdf'
  
-#print(convert_pdf(file,[1,]))
+print(convert_pdf(file,[1,]))

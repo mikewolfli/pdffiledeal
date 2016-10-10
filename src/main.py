@@ -16,7 +16,9 @@ import datetime
 #import glob
 #import timeit
 from multiprocessing.dummy import Pool as ThreadPool
-import win32api
+#import win32api
+import ctypes
+import ctypes.wintypes
 
 NAME = '装箱单&spec&gad拷贝应用'
 PUBLISH_KEY=' R ' #R - release , B - Beta , A- Alpha
@@ -34,6 +36,19 @@ def cur_dir():
         return path
     elif os.path.isfile(path):
         return os.path.dirname(path)
+
+def getshortpath(path):
+    ctypes.windll.kernel32.GetShortPathNameW.argtypes = [
+        ctypes.wintypes.LPCWSTR, # lpszLongPath
+        ctypes.wintypes.LPWSTR, # lpszShortPath
+        ctypes.wintypes.DWORD # cchBuffer
+        ]
+    ctypes.windll.kernel32.GetShortPathNameW.restype = ctypes.wintypes.DWORD
+
+    buf = ctypes.create_unicode_buffer(1024) # adjust buffer size, if necessary
+    ctypes.windll.kernel32.GetShortPathNameW(path, buf, len(buf))
+
+    return buf.value 
 '''              
 threadLock = threading.Lock()
 class refresh_thread(threading.Thread):
@@ -294,7 +309,8 @@ class Application():
             fi = pdf.encode(encoding='gbk',errors='strict')
             pdffile=pdf
         except UnicodeEncodeError:
-            pdffile = win32api.GetShortPathName(pdf)
+            #pdffile = win32api.GetShortPathName(pdf)
+            pdffile = getshortpath(pdf)
         
         try:
             re = subprocess.check_output([pdf2text_exe,'-f','1','-l','1','-cfg',cfg,'-raw',pdffile,'-'], shell=True,stderr=subprocess.STDOUT)            
