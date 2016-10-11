@@ -13,6 +13,7 @@ from functools import wraps
 import ctypes
 import ctypes.wintypes
 import win32api
+from multiprocessing.dummy import Pool as ThreadPool
 
 def getpath(path):
     ctypes.windll.kernel32.GetShortPathNameW.argtypes = [
@@ -22,10 +23,12 @@ def getpath(path):
         ]
     ctypes.windll.kernel32.GetShortPathNameW.restype = ctypes.wintypes.DWORD
 
-    buf = ctypes.create_unicode_buffer(1024) # adjust buffer size, if necessary
+    buf = ctypes.create_unicode_buffer(4096) # adjust buffer size, if necessary
+    
     ctypes.windll.kernel32.GetShortPathNameW(path, buf, len(buf))
-
-    return buf.value   
+    
+    short_path = buf.value
+    return short_path  
  
 def fn_timer(function):
     @wraps(function)
@@ -56,12 +59,21 @@ def convert_pdf(path, pages):
     return str
 
 #file  = r'm:\E30023919.054_致远奥林至尊_L9_7952_20160920-1040.pdf'
-#file = r'm:\\E30023919.054_致远•奥林至尊_L9_7952_20160920-1040.pdf'
+#file = r'M:\s\E30034834.011,013河南启元•璟都国际二期5、6、7号楼10222\0700 SPEC&GAD\E30034834.011_河南启元•璟都国际二期5、6、7号楼_L11_10222_20151209-1400.pdf'
 #file = r'P:\Public\CE\6.Temp\数据组\E30023919.054_致远•奥林至尊_L9_7952_20160920-1040.pdf'
 file = r'\\10.126.35.6\Drawing\SJ\Nonstandard Project Files\E30023919.054-057致远•奥林至尊7952\0700 SPEC&GAD\E30023919.054_致远•奥林至尊_L9_7952_20160920-1040.pdf'
-fi = getpath(file)
+#fi = getpath(file)
 #fi = win32api.GetShortPathName(file)
-print(fi)
 #file = r'M:\h25yosan2.pdf'
- 
+#file=r"P:\Public\CE\6.Temp\数据组\E30034834.011,013河南启元•璟都国际二期5、6、7号楼10222\0700 SPEC&GAD\E30034834.011_河南启元•璟都国际二期5、6、7号楼_L11_10222_20151209-1400.pdf"
+'''
+try:
+    file.encode(encoding='gbk',errors='strict')
+    print(file)
+except UnicodeEncodeError:
+    print(getpath(file))
+'''
+
+file= win32api.GetShortPathName(file)
+print(file)
 print(convert_pdf(file,[1,]))

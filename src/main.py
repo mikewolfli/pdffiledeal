@@ -16,9 +16,11 @@ import datetime
 #import glob
 #import timeit
 from multiprocessing.dummy import Pool as ThreadPool
-#import win32api
+import win32api
+'''
 import ctypes
 import ctypes.wintypes
+'''
 
 NAME = '装箱单&spec&gad拷贝应用'
 PUBLISH_KEY=' R ' #R - release , B - Beta , A- Alpha
@@ -36,7 +38,7 @@ def cur_dir():
         return path
     elif os.path.isfile(path):
         return os.path.dirname(path)
-
+'''
 def getshortpath(path):
     ctypes.windll.kernel32.GetShortPathNameW.argtypes = [
         ctypes.wintypes.LPCWSTR, # lpszLongPath
@@ -49,7 +51,7 @@ def getshortpath(path):
     ctypes.windll.kernel32.GetShortPathNameW(path, buf, len(buf))
 
     return buf.value 
-'''              
+            
 threadLock = threading.Lock()
 class refresh_thread(threading.Thread):
     def __init__(self, frame, typ=None):
@@ -106,7 +108,7 @@ class Application():
         
         finish = time.time()
         cost = finish-start         
-
+        
         r_str = ' 本次操作：'+str(total)+' 个文件夹, 用时'+str(cost)+' 秒 \n'
         results.append(r_str)
         print(r_str)
@@ -125,14 +127,13 @@ class Application():
         aim_dir = self.scan_files(dr, files, copies)
             
         if len(aim_dir)==0:
-            return {dr:'装箱清单未生成或文件名含不可识别的字符，故跳过文件夹'}
+            return {dr:'装箱清单未生成，故跳过文件夹'}
             
         if len(copies)==0:
             return {dr:'没有待处理文件，故跳过'}
                      
         self.copy_file(dr,aim_dir,copies)
         print(' 文件夹:'+dr+'处理完成，共计拷贝'+str(len(copies))+'个文件')
-        
         return {dr:'文件处理完成.'}
                                   
     def scan_files(self, dr, files, copies):              
@@ -180,21 +181,33 @@ class Application():
         for r in copies:
             self.cmp_file(source_path, aim_path, r)
     
+    def get_file_id(self):
+        res=counter.get(counter.counter_id=='c1')
+        counter.update(current_counter=counter.current_counter+counter.step).where(counter.counter_id=='c1').execute()
+        c_id= res.current_counter
+        file_id=res.pre_char+str(c_id)
+               
+        return file_id
+           
     def make_copy_log(self, source, aim,res, a_list, s_time):                
     #def make_copy_log(self, source, aim,res, a_list, s_time, a_time=None):
         over_on = datetime.datetime.now()
         ##数据库比较
         if len(a_list)==0:
-            r = filelog.select(fn.Count().alias('count')).get()
-            f = r.count
-            file = 'F'+str(f+1)
-            q = filelog.create(file=file,file_flag=res['flag'],from_dir=source,aim_dir=aim,cur_file=res['file'],cur_file_modified_on=s_time)
+            b_check=True
+            while b_check:
+                file = self.get_file_id()
+                try:
+                    q = filelog.create(file=file,file_flag=res['flag'],from_dir=source,aim_dir=aim,cur_file=res['file'],cur_file_modified_on=s_time)
+                    b_check=False
+                except IntegrityError:
+                    time.sleep(0.1)
+        
             if q.file==file:
-                changelog.insert(file=file,m_name=res['file'],m_modified=s_time, over_on=over_on).execute()   
+                changelog.insert(file=file,m_name=res['file'],m_modified=s_time, over_on=over_on).execute()                                
         else:
             file =res['flag']
             q = filelog.update(cur_file=res['file'], cur_file_modified_on=s_time).where(filelog.file_flag==file)
-
             if q.execute()>0:
                 changelog.insert(file=file,f_name=a_list[0],f_modified=a_list[1],m_name=res['file'],m_modified=s_time, over_on=over_on).execute()    
             
@@ -214,17 +227,29 @@ class Application():
                 else:
                     changelog.insert(file=file,f_name=a_file[1],f_modified=a_time,m_name=res['file'],m_modified=s_time, over_on=over_on).execute()          
         except filelog.DoesNotExist:
-            r = filelog.select(fn.Count().alias('count')).get()
-            f = r.count
-            file = 'F'+str(f+1)
-            q = filelog.create(file=file,file_flag=res['flag'],from_dir=source,aim_dir=aim,cur_file=res['file'],cur_file_modified_on=s_time)
+            b_check=True
+            while b_check:
+                try:
+                    file = self.get_file_id()
+                    q = filelog.create(file=file,file_flag=res['flag'],from_dir=source,aim_dir=aim,cur_file=res['file'],cur_file_modified_on=s_time)
+                    b_check=False
+                except IntegrityError:
+                    time.sleep(0.1)
+                           
             if q.file==file:
                 if len(a_list)==0:
                     changelog.insert(file=file,m_name=res['file'],m_modified=s_time, over_on=over_on).execute()   
                 else:
                     changelog.insert(file=file,f_name=a_file[1],f_modified=a_time,m_name=res['file'],m_modified=s_time, over_on=over_on).execute()  
         '''
-
+    
+    def unierr_file_path(self, file):
+        try:
+            file.encode(encoding='gbk',errors='strict')
+            return file
+        except UnicodeEncodeError:
+            return win32api.GetShortPathName(file)
+        
     def cmp_file(self, source, aim, res): #0-目标文件不存在，1-目标文件更改日期<原文件，2-目标文件更改日期>=原文件
         #文件比较, 文件在网络服务器上，故慢
         ''' 
@@ -305,12 +330,7 @@ class Application():
         res = {}
         pdf = join(dr,file)
         
-        try:
-            fi = pdf.encode(encoding='gbk',errors='strict')
-            pdffile=pdf
-        except UnicodeEncodeError:
-            #pdffile = win32api.GetShortPathName(pdf)
-            pdffile = getshortpath(pdf)
+        pdffile = self.unierr_file_path(pdf)
         
         try:
             re = subprocess.check_output([pdf2text_exe,'-f','1','-l','1','-cfg',cfg,'-raw',pdffile,'-'], shell=True,stderr=subprocess.STDOUT)            

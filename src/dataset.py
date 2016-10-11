@@ -30,6 +30,15 @@ class BaseModel(Model):
     class Meta:
         database=db
         
+class counter(BaseModel):
+    counter_id = CharField(primary_key=True, max_length=12)
+    current_counter = BigIntegerField(null=True)
+    step = IntegerField(default=1)
+    pre_char = CharField(null=True)
+    
+    class Meta:
+        db_table = 'counter'
+        
 class filelog(BaseModel):
     file = CharField(max_length=64, primary_key=True, db_column='file_id')
     file_flag = CharField(max_length=255)
