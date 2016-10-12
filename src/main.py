@@ -102,9 +102,13 @@ class Application():
         total = len(dirs)
         
         print('获得原文件夹下所有文件夹清单,共计 '+str(total)+' 个文件夹.')
-        self.spec_str=[]
-      
-        results= pool.map(self.deal_dir, dirs)
+        r_dirs = []
+        
+        for d in dirs:
+            d = self.unierr_file_path(join(self.s_dir, d))
+            r_dirs.append(d)
+                
+        results= pool.map(self.deal_dir, r_dirs)
         
         finish = time.time()
         cost = finish-start         
@@ -115,10 +119,10 @@ class Application():
         self.log_result(results)
                  
     def deal_dir(self, dr):
-        if not isdir(join(self.s_dir,dr)):
+        if not isdir(dr):
             return {dr:'跳过文件,原因非目录！'}
             
-        dr = join(self.s_dir, dr, self.pl_dir)
+        dr = join(dr, self.pl_dir)
         #print('正在处理文件夹：'+dr)
         #files = [f for f in os.listdir(dr) if isfile(join(dr,f)) and f.endswith('.pdf')]
         files = os.listdir(dr)
@@ -248,7 +252,8 @@ class Application():
             file.encode(encoding='gbk',errors='strict')
             return file
         except UnicodeEncodeError:
-            return win32api.GetShortPathName(file)
+            file_name = win32api.GetShortPathName(file)
+            return file_name
         
     def cmp_file(self, source, aim, res): #0-目标文件不存在，1-目标文件更改日期<原文件，2-目标文件更改日期>=原文件
         #文件比较, 文件在网络服务器上，故慢
@@ -333,7 +338,7 @@ class Application():
         pdffile = self.unierr_file_path(pdf)
         
         try:
-            re = subprocess.check_output([pdf2text_exe,'-f','1','-l','1','-cfg',cfg,'-raw',pdffile,'-'], shell=True,stderr=subprocess.STDOUT)            
+            re = subprocess.check_output([pdf2text_exe,'-f','1','-l','1','-cfg',cfg,'-raw',pdffile,'-'], shell=True,stderr=subprocess.STDOUT)           
         except subprocess.CalledProcessError as e:
             print('Calledprocerr: %s'%e)
             return None

@@ -14,6 +14,7 @@ import ctypes
 import ctypes.wintypes
 import win32api
 from multiprocessing.dummy import Pool as ThreadPool
+import os
 
 def getpath(path):
     ctypes.windll.kernel32.GetShortPathNameW.argtypes = [
@@ -73,7 +74,15 @@ try:
 except UnicodeEncodeError:
     print(getpath(file))
 '''
+dir = r'P:/Public/CE/6.Temp/数据组/test/E30023923.044-051,057-073时代•仁智山水一期工程7965/0700 SPEC&GAD'
+path = r'E30023923.044_时代•仁智山水一期工程_L1_7965_20160226-1630.pdf'
 
+d = win32api.GetShortPathName(dir)
+print(d)
+a=os.path.join(d, path)
+print(win32api.GetShortPathName(a))
+'''
 file= win32api.GetShortPathName(file)
 print(file)
 print(convert_pdf(file,[1,]))
+'''
