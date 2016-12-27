@@ -81,7 +81,9 @@ class Application():
         now = datetime.datetime.now()
         log_time = now.strftime("%Y-%m-%d %H:%M:%S")
         
-        f_file = join(cur_dir(),'operate.log')
+        file_name = str(datetime.date.today())+'.log'
+        
+        f_file = join(cur_dir(),'log',file_name)
         fp = codecs.open(f_file,'a','utf-8')
         fp.write(log_time+'\n')
         for r in results:
@@ -352,7 +354,42 @@ class Application():
         elif len(re)!=0:
         #if len(re)!=0:
             ra = re.split('\r\n')
-            if ra[3]=='Packing List':
+            pa = ''
+            if len(ra)>8:
+                prj=''
+                prj_name=''
+                for a in ra:
+                    if a=='Packing List':
+                        pa = a
+                        break
+                    
+                if len(pa)==0:
+                    return None
+                
+                for b in ra:
+                    if '产品ID' in b:
+                        ar= b[-14:]
+                        prj = ar[:10].replace('/','')
+                        break
+                
+                for c in ra:
+                    if '项目名称' in c:
+                        prj_name = c[5:]
+                        prj_name=prj_name.replace('/','')
+                        prj_name=prj_name.replace('\\','')                        
+                        break
+                
+                if len(prj)!=0 and len(prj_name)!=0:
+                    res['flag']=self.get_file_flag(file, '_')
+                    res['file']=file
+                    res['dir']= prj+' '+prj_name  
+                else:
+                    return None
+            else:
+                return None
+                                                    
+            '''
+            if len(ra)>8 and ra[3]=='Packing List':
                 ar = ra[4][-14:]
                 prj = ar[:10].replace('/','')
                 arn = ra[8][5:]
@@ -362,8 +399,7 @@ class Application():
                 res['flag']=self.get_file_flag(file, '_')
                 res['file']=file
                 res['dir']= prj+' '+prj_name
-            else:
-                return None
+            '''
         else:
             return None
         
